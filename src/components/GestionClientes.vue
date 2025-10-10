@@ -4,7 +4,7 @@
   >
     <h3 class="text-center my-2">Gestión de Clientes</h3>
     <!-- Formulario -->
-    <form @submit.prevent="agregarCliente" class="mb-4">
+    <form @submit.prevent="guardarCliente" class="mb-4">
       <!-- DNI con validación visual -->
       <div class="mb-3 row align-items-center">
         <!-- Columna DNI -->
@@ -170,8 +170,9 @@
         <input
           type="checkbox"
           id="historico"
-          v-model="nuevoCliente.historico"
+          v-model="mostrarHistorico"
           class="form-check-input"
+          @change="cargarClientes"
         />
         <label for="historico" class="form-check-label ms-3 me-5 mb-0"
           >Histórico</label
@@ -238,7 +239,12 @@
 import { ref, onMounted } from "vue";
 import provmuniData from "@/data/provmuni.json";
 import Swal from "sweetalert2";
-import { getClientes, deleteCliente } from "@/api/cliente.js";
+import {
+  getClientes,
+  addCliente,
+  updateCliente,
+  deleteCliente,
+} from "@/api/clientes.js";
 
 /* =================================== SCRIPT CRUD =================================== */
 
@@ -256,6 +262,7 @@ const nuevoCliente = ref({
 });
 
 const editando = ref(false);
+const mostrarHistorico = ref(false);
 const clienteEditandoId = ref(null);
 
 // Función Listar Clientes con get
@@ -264,14 +271,118 @@ const clientes = ref([]);
 
 // Cargar clientes al montar el componente
 onMounted(async () => {
-  clientes.value = await getClientes();
+  cargarClientes();
+});
+
+const cargarClientes = () => {
+  getClientes(mostrarHistorico.value).then((data) => {
+    clientes.value = data;
+  });
   Swal.fire({
     icon: "success",
     title: "Listando Clientes...",
     showConfirmButton: false,
     timer: 1500,
   });
-});
+};
+
+const guardarCliente = async () => {
+  // Validar duplicados solo si estás creando (no si editando)
+  if (!editando.value) {
+    const duplicado = clientes.value.find(
+      (cliente) =>
+        cliente.dni === nuevoCliente.value.dni ||
+        cliente.movil === nuevoCliente.value.movil ||
+        cliente.email === nuevoCliente.value.email
+    );
+    if (duplicado) {
+      Swal.fire({
+        icon: "error",
+        title: "DNI, móvil o email duplicados",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+      return;
+    }
+  }
+
+  // Confirmación antes de guardar
+  const result = await Swal.fire({
+    title: editando.value
+      ? "¿Desea modificar este cliente?"
+      : "¿Desea grabar este cliente?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: editando.value ? "Modificar" : "Grabar",
+    cancelButtonText: "Cancelar",
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    if (editando.value) {
+      // Modificar cliente (PUT)
+      const clienteActualizado = await updateCliente(
+        clienteEditandoId.value,
+        nuevoCliente.value
+      );
+      // Actualiza el cliente en la lista local
+      const index = clientes.value.findIndex(
+        (c) => c.id === clienteEditandoId.value
+      );
+      if (index !== -1) clientes.value[index] = clienteActualizado;
+      Swal.fire({
+        icon: "success",
+        title: "Cliente modificado",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } else {
+      // Agregar cliente (POST)
+      const clienteAgregado = await addCliente(nuevoCliente.value);
+      clientes.value.push(clienteAgregado);
+      Swal.fire({
+        icon: "success",
+        title: "Cliente agregado",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    }
+
+    // Reset formulario y estado
+    nuevoCliente.value = {
+      dni: "",
+      nombre: "",
+      apellidos: "",
+      email: "",
+      movil: "",
+      direccion: "",
+      provincia: "",
+      municipio: "",
+      fecha_alta: "",
+      historico: true,
+    };
+    editando.value = false;
+    clienteEditandoId.value = null;
+
+    // Reset validaciones si tienes (dniValido, movilValido, etc)
+    dniValido.value = true;
+    movilValido.value = true;
+    emailValido.value = true;
+
+    // Refrescar lista completa (opcional)
+    clientes.value = await getClientes();
+  } catch (error) {
+    console.error("Error al guardar cliente:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error al guardar cliente",
+      text: "Inténtelo de nuevo o contacte con el administrador.",
+      showConfirmButton: false,
+      timer: 1500,
+    });
+  }
+};
 
 const agregarCliente = () => {
   clientes.value.push({ ...nuevoCliente.value });
@@ -295,14 +406,16 @@ const eliminarCliente = async (movil) => {
   // Refrescar lista desde la API
   clientes.value = await getClientes();
   // Buscar cliente completo (que incluye el ID)
-  const clienteAEliminar = clientes.value.find(cliente => cliente.movil === movil);
+  const clienteAEliminar = clientes.value.find(
+    (cliente) => cliente.movil === movil
+  );
 
   if (!clienteAEliminar) {
     Swal.fire({
-      icon: 'error',
-      title: 'Cliente no encontrado',
+      icon: "error",
+      title: "Cliente no encontrado",
       showConfirmButton: false,
-      timer: 1500
+      timer: 1500,
     });
     return;
   }
@@ -310,12 +423,11 @@ const eliminarCliente = async (movil) => {
   // Pedir confirmación antes de eliminar
   const result = await Swal.fire({
     title: `¿Eliminar al cliente ${clienteAEliminar.nombre} ${clienteAEliminar.apellidos}?`,
-    icon: 'warning',
+    icon: "warning",
     showCancelButton: true,
-    confirmButtonText: 'Sí, eliminar',
-    cancelButtonText: 'Cancelar'
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText: "Cancelar",
   });
-
 
   // Si no confirma, salir
   if (!result.isConfirmed) return;
@@ -326,13 +438,12 @@ const eliminarCliente = async (movil) => {
   clientes.value = await getClientes();
 
   Swal.fire({
-    icon: 'success',
-    title: 'Cliente eliminado',
+    icon: "success",
+    title: "Cliente eliminado",
     showConfirmButton: false,
-    timer: 1500
+    timer: 1500,
   });
 };
-
 
 // Función Editar Cliente (carga datos en el formulario)
 const editarCliente = (movil) => {

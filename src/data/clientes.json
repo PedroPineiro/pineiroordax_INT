@@ -197,7 +197,7 @@
     },
     {
       "dni": "Y1234567X",
-      "fecha_alta": "21/09/2023",
+      "fecha_alta": "2023-09-21",
       "nombre": "María",
       "apellidos": "Gómez Rodríguez",
       "email": "maria.gomez@example.com",
@@ -208,7 +208,8 @@
       "historico": true,
       "lopd": true,
       "password": "",
-      "id": "d590"
+      "id": "d590",
+      "fechaAlta": "2025-10-29"
     },
     {
       "dni": "56712389R",
@@ -314,6 +315,19 @@
       "lopd": false,
       "password": "",
       "id": "c396"
+    },
+    {
+      "id": "9f9e",
+      "dni": "12345678Z",
+      "nombre": "Dshds",
+      "apellidos": "Fsjhrh",
+      "email": "aaa@gmail.com",
+      "movil": "676767676",
+      "direccion": "Dkdkktd",
+      "provincia": "Albacete",
+      "municipio": "Alatoz",
+      "fechaAlta": "2025-10-01",
+      "historico": false
     }
   ]
 }
