@@ -192,7 +192,9 @@
     <!-- Lista de Clientes -->
     <div class="table-responsive">
       <h4 class="text-center w-100">Listado Clientes</h4>
-      <table class="table table-bordered table-striped w-100">
+      <table
+        class="table table-bordered table-striped table-hover table-sm align-middle"
+      >
         <thead class="table-primary">
           <tr>
             <th class="text-center">ID</th>
@@ -213,7 +215,7 @@
             <td class="align-middle text-center">
               <button
                 @click="eliminarCliente(cliente.movil)"
-                class="btn btn-danger btn-sm me-2 border-0 shadow-none rounded-0"
+                class="btn btn-danger btn-sm ms-4 border-0 shadow-none rounded-0"
                 title="Eliminar cliente"
                 aria-label="Eliminar cliente"
               >
@@ -221,11 +223,18 @@
               </button>
               <button
                 @click="editarCliente(cliente.movil)"
-                class="btn btn-warning btn-sm border-0 shadow-none rounded-0"
+                class="btn btn-warning btn-sm border-0 dow-none shadow-none rounded-0"
                 title="Editar cliente"
-                aria-label="Editar cliente"
               >
                 <i class="bi bi-pencil"></i>
+              </button>
+              <button
+                v-if="cliente.historico === false"
+                @click="activarCliente(cliente)"
+                class="btn btn-secondary btn-sm ms-2 border-0 shadow-none rounded-0"
+                title="Activar cliente"
+              >
+                <i class="bi bi-person-check"></i>
               </button>
             </td>
           </tr>
@@ -258,7 +267,7 @@ const nuevoCliente = ref({
   provincia: "",
   municipio: "",
   fechaAlta: "",
-  historico: false,
+  historico: true,
 });
 
 const editando = ref(false);
@@ -274,20 +283,9 @@ onMounted(async () => {
   cargarClientes();
 });
 
-const cargarClientes = () => {
-  getClientes(mostrarHistorico.value).then((data) => {
-    clientes.value = data;
-  });
-  Swal.fire({
-    icon: "success",
-    title: "Listando Clientes...",
-    showConfirmButton: false,
-    timer: 1500,
-  });
-};
-
 const guardarCliente = async () => {
   // Validar duplicados solo si estás creando (no si editando)
+
   if (!editando.value) {
     const duplicado = clientes.value.find(
       (cliente) =>
@@ -318,14 +316,17 @@ const guardarCliente = async () => {
   });
 
   if (!result.isConfirmed) return;
-
+  //  cliente.fecha_alta = formatearFechaParaInput(cliente.fecha_alta);
   try {
     if (editando.value) {
-      // Modificar cliente (PUT)
+      // Validar campos
+      // Modificar cliente (PUT)+
+
       const clienteActualizado = await updateCliente(
         clienteEditandoId.value,
         nuevoCliente.value
       );
+
       // Actualiza el cliente en la lista local
       const index = clientes.value.findIndex(
         (c) => c.id === clienteEditandoId.value
@@ -339,6 +340,7 @@ const guardarCliente = async () => {
       });
     } else {
       // Agregar cliente (POST)
+
       const clienteAgregado = await addCliente(nuevoCliente.value);
       clientes.value.push(clienteAgregado);
       Swal.fire({
@@ -348,6 +350,8 @@ const guardarCliente = async () => {
         timer: 1500,
       });
     }
+
+    // Utiliza la función global formatearFechaParaInput definida fuera de guardarCliente
 
     // Reset formulario y estado
     nuevoCliente.value = {
@@ -384,21 +388,49 @@ const guardarCliente = async () => {
   }
 };
 
-const agregarCliente = () => {
-  clientes.value.push({ ...nuevoCliente.value });
-  // Reiniciar el formulario
-  nuevoCliente.value = {
-    dni: "",
-    nombre: "",
-    apellidos: "",
-    email: "",
-    movil: "",
-    direccion: "",
-    provincia: "",
-    municipio: "",
-    fechaAlta: "",
-    historico: false,
-  };
+// Función para activar cliente (poner historico en true)
+const activarCliente = async (cliente) => {
+  const confirmacion = await Swal.fire({
+    title: `¿Activar cliente ${cliente.nombre} ${cliente.apellidos}?`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Activar",
+    cancelButtonText: "Cancelar",
+  });
+
+  if (!confirmacion.isConfirmed) return;
+
+  try {
+    // Crear una copia del cliente con historico en true
+    const clienteActivado = { ...cliente, historico: true };
+
+    // Llamar a la API para actualizar
+    const actualizado = await updateCliente(cliente.id, clienteActivado);
+
+    // Actualizar la lista local (opcional, también puedes volver a cargar todo)
+    const index = clientes.value.findIndex((c) => c.id === cliente.id);
+    if (index !== -1) {
+      clientes.value[index] = actualizado;
+    }
+
+    Swal.fire({
+      icon: "success",
+      title: "Cliente reactivado",
+      showConfirmButton: false,
+      timer: 1500,
+    });
+
+    // Recargar lista actualizada
+    await cargarClientes();
+  } catch (error) {
+    console.error("Error al reactivar cliente:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error al activar cliente",
+      text: "Por favor, intenta de nuevo.",
+      timer: 1500,
+    });
+  }
 };
 
 // Funcion Eliminar Cliente con patch (histórico a false)
