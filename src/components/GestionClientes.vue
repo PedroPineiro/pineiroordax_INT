@@ -1,6 +1,6 @@
 <template>
   <div
-    class="mx-auto mt-2 p-4 pb-5 border rounded-3 shadow-sm min-vh-75 bg-light"
+    class="container mx-auto mt-2 p-3 my-1 border rounded-0 shadow-sm min-vh-75 bg-light"
   >
     <h3 class="text-center my-2">Gestión de Clientes</h3>
     <!-- Formulario -->
@@ -42,7 +42,7 @@
         </div>
       </div>
 
-      <!-- Nombre y Apellidos -->
+      <!-- FILA Nombre y Apellidos -->
       <div class="mb-3 row g-3 align-items-center">
         <!-- Nombre -->
         <div class="col-md-5 d-flex align-items-center">
@@ -68,14 +68,14 @@
             type="text"
             id="apellidos"
             v-model="nuevoCliente.apellidos"
-            class="form-control flex-grow-1 ms-1"
+            class="form-control flex-grow-1"
             @blur="capitalizarTexto('apellidos')"
             required
           />
         </div>
       </div>
 
-      <!-- Email y Móvil -->
+      <!-- FILA Email y Móvil -->
       <div class="mb-3 row g-3 align-items-center">
         <!-- Email -->
         <div class="col-md-5 d-flex align-items-center">
@@ -87,7 +87,7 @@
             id="email"
             v-model="nuevoCliente.email"
             class="form-control flex-grow-1"
-            @blur="validarEmail"
+            @blur="validarEmail('email')"
             :class="{ 'is-invalid': !emailValido }"
             required
           />
@@ -95,21 +95,21 @@
 
         <!-- Móvil -->
         <div class="col-md-3 d-flex align-items-center">
-          <label for="movil" class="form-label me-4 ms-5 mb-0 text-nowrap"
+          <label for="movil" class="form-label me-5 ms-5 mb-0 text-nowrap"
             >Móvil:</label
           >
           <input
             type="tel"
             id="movil"
             v-model="nuevoCliente.movil"
-            @blur="validarMovil"
-            class="form-control flex-grow-1 text-center ms-4"
+            @blur="validarMovil('movil')"
+            class="form-control flex-grow-1 text-center"
             :class="{ 'is-invalid': !movilValido }"
           />
         </div>
       </div>
 
-      <!-- Dirección, Provincia y Municipio -->
+      <!-- FILA Dirección, Provincia y Municipio -->
       <div class="mb-3 row g-3 align-items-center">
         <!-- Dirección -->
         <div class="col-md-5 d-flex align-items-center">
@@ -119,15 +119,15 @@
           <input
             type="text"
             id="direccion"
-            @blur="capitalizarTexto('direccion')"
             v-model="nuevoCliente.direccion"
+            @blur="capitalizarTexto('direccion')"
             class="form-control flex-grow-1"
           />
         </div>
 
         <!-- Provincia -->
         <div class="col-md-3 d-flex align-items-center">
-          <label for="provincia" class="form-label me-2 ms-5 mb-0 text-nowrap"
+          <label for="provincia" class="form-label me-4 ms-5 mb-0 text-nowrap"
             >Provincia:</label
           >
           <select
@@ -137,7 +137,7 @@
             @change="filtrarMunicipios"
           >
             <option disabled value="">Seleccione provincia</option>
-            <option v-for="prov in provincias" :key="prov" :value="prov.nm">
+            <option v-for="prov in provincias" :key="prov.id" :value="prov.nm">
               {{ prov.nm }}
             </option>
           </select>
@@ -156,7 +156,7 @@
             <option disabled value="">Seleccione municipio</option>
             <option
               v-for="mun in municipiosFiltrados"
-              :key="mun"
+              :key="mun.id"
               :value="mun.nm"
             >
               {{ mun.nm }}
@@ -185,7 +185,7 @@
           type="submit"
           class="btn btn-primary border-0 shadow-none rounded-0"
         >
-          Grabar
+          Cargar
         </button>
       </div>
     </form>
@@ -193,7 +193,7 @@
     <div class="table-responsive">
       <h4 class="text-center w-100">Listado Clientes</h4>
       <table
-        class="table table-bordered table-striped table-hover table-sm align-middle"
+        class="table table-bordered table-striped table-hover table-sm w-100 align-middle"
       >
         <thead class="table-primary">
           <tr>
@@ -255,7 +255,7 @@ import {
   deleteCliente,
 } from "@/api/clientes.js";
 
-/* =================================== SCRIPT CRUD =================================== */
+// SCRIPTS CRUD //
 
 const nuevoCliente = ref({
   dni: "",
@@ -267,21 +267,33 @@ const nuevoCliente = ref({
   provincia: "",
   municipio: "",
   fechaAlta: "",
-  historico: true,
+  historico: true, // luego lo cambiamos a false
 });
 
-const editando = ref(false);
-const mostrarHistorico = ref(false);
-const clienteEditandoId = ref(null);
+// Funcion lisar clientes con get
 
-// Función Listar Clientes con get
+const editando = ref(false); // Estado de edición
+const clienteEditandoId = ref(null); // ID del cliente que se está editando
+const mostrarHistorico = ref(false);
+// Cargar clientes al montar el componente
 
 const clientes = ref([]);
-
-// Cargar clientes al montar el componente
+// Zona Cargar clientes Al Montar el componente
 onMounted(async () => {
   cargarClientes();
 });
+
+const cargarClientes = () => {
+  getClientes(mostrarHistorico.value).then((data) => {
+    clientes.value = data;
+  });
+  Swal.fire({
+    icon: "success",
+    title: "Listando Clientes",
+    showConfirmButton: false,
+    timer: 1500,
+  });
+};
 
 const guardarCliente = async () => {
   // Validar duplicados solo si estás creando (no si editando)
@@ -316,7 +328,7 @@ const guardarCliente = async () => {
   });
 
   if (!result.isConfirmed) return;
-  //  cliente.fecha_alta = formatearFechaParaInput(cliente.fecha_alta);
+  //  cliente.fechaAlta = formatearFechaParaInput(cliente.fechaAlta);
   try {
     if (editando.value) {
       // Validar campos
@@ -351,8 +363,6 @@ const guardarCliente = async () => {
       });
     }
 
-    // Utiliza la función global formatearFechaParaInput definida fuera de guardarCliente
-
     // Reset formulario y estado
     nuevoCliente.value = {
       dni: "",
@@ -363,10 +373,10 @@ const guardarCliente = async () => {
       direccion: "",
       provincia: "",
       municipio: "",
-      fecha_alta: "",
+      fechaAlta: "",
       historico: true,
     };
-    editando.value = false;
+    editando.value = true;
     clienteEditandoId.value = null;
 
     // Reset validaciones si tienes (dniValido, movilValido, etc)
@@ -433,6 +443,23 @@ const activarCliente = async (cliente) => {
   }
 };
 
+const agregarCliente = () => {
+  clientes.value.push({ ...nuevoCliente.value });
+  // Reiniciar el formulario
+  nuevoCliente.value = {
+    dni: "",
+    nombre: "",
+    apellidos: "",
+    email: "",
+    movil: "",
+    direccion: "",
+    provincia: "",
+    municipio: "",
+    fechaAlta: "",
+    historico: false,
+  };
+};
+
 // Funcion Eliminar Cliente con patch (histórico a false)
 const eliminarCliente = async (movil) => {
   // Refrescar lista desde la API
@@ -494,14 +521,14 @@ const editarCliente = (movil) => {
   nuevoCliente.value = { ...cliente }; // 🔁 Aquí cargas el formulario con los datos
   editando.value = true;
   // Formatear fecha para el input type="date"
-  nuevoCliente.value.fecha_alta = formatearFechaParaInput(cliente.fecha_alta);
+  nuevoCliente.value.fechaAlta = formatearFechaParaInput(cliente.fechaAlta);
   // Actualiza municipios filtrados según la provincia seleccionada
   filtrarMunicipios();
   nuevoCliente.value.municipio = cliente.municipio; // 🟢 Ahora estamos en modo edición
   clienteEditandoId.value = cliente.id;
 };
 
-/* =================================== SCRIPT AUXILIARES =================================== */
+// SCRIPS AUXILIARES
 
 // Estado de validez del DNI/NIE si la estructura de datos es más compleja se usa reactive
 const dniValido = ref(true); // Por defecto es válido y no muestra error al iniciar
@@ -527,12 +554,6 @@ const validarDniNie = (valor) => {
   return false;
 };
 
-// Validar al salir del campo
-const validarDni = () => {
-  const dni = nuevoCliente.value.dni.trim().toUpperCase();
-  dniValido.value = validarDniNie(dni);
-};
-
 // Función única: capitaliza y asigna en el mismo paso
 const capitalizarTexto = (campo) => {
   const texto = nuevoCliente.value[campo] ?? "";
@@ -546,7 +567,8 @@ const capitalizarTexto = (campo) => {
     .join(" ");
 };
 
-// Validar email
+// control email
+
 const emailValido = ref(true);
 const validarEmail = () => {
   const email = nuevoCliente.value.email.trim();
@@ -555,28 +577,8 @@ const validarEmail = () => {
   emailValido.value = regex.test(email);
 };
 
-// Validar móvil
-const movilValido = ref(true);
-const movilRegex = /^[67]\d{8}$/;
-
-const validarMovil = () => {
-  const movil = nuevoCliente.value.movil.trim();
-
-  if (movil === "") {
-    movilValido.value = true; // Vacío = válido (opcional)
-    return true;
-  }
-
-  if (movil.charAt(0) === "6" || movil.charAt(0) === "7") {
-    movilValido.value = movilRegex.test(movil);
-    return movilValido.value;
-  } else {
-    movilValido.value = false;
-    return false;
-  }
-};
-
 // Provincias y municipios
+
 const provincias = ref(provmuniData.provincias); // Array de provincias
 const municipios = ref(provmuniData.municipios); // Array de municipios para filtrarlos
 const municipiosFiltrados = ref([]); // vacío pero contendrá los municipios filtrados
@@ -604,20 +606,50 @@ const filtrarMunicipios = () => {
   nuevoCliente.value.municipio = "";
 };
 
-// conversor fecha
-const formatearFechaParaInput = (fecha) => {
-  if (!fecha) return "";
-  const partes = fecha.split("/");
-  if (partes.length !== 3) return "";
-  // partes = [dd, mm, yyyy]
-  return `${partes[2]}-${partes[1].padStart(2, "0")}-${partes[0].padStart(
-    2,
-    "0"
-  )}`;
+const movilValido = ref(true);
+// Validar al salir del campo
+const validarDni = () => {
+  nuevoCliente.value.dni = nuevoCliente.value.dni.trim().toUpperCase();
+  dniValido.value = validarDniNie(dni);
 };
+
+const validarMovil = () => {
+  const movil = nuevoCliente.value.movil.trim();
+  // Expresión para móvil español (9 dígitos, empieza por 6, 7, 8 o 9)
+  const regex = /^[6789]\d{8}$/;
+  movilValido.value = regex.test(movil) || movil === "";
+};
+
+// conversor fecha
+function formatearFechaParaInput(fecha) {
+  if (!fecha) return '';
+
+  // Detecta formato dd/mm/yyyy
+  if (fecha.includes('/')) {
+    const [dd, mm, yyyy] = fecha.split('/');
+    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  }
+
+  // Detecta formato yyyy-mm-dd
+  if (fecha.includes('-')) {
+    const partes = fecha.split('-');
+    if (partes.length === 3) return fecha; // ya formato ISO
+  }
+
+  return '';
+}
 </script>
 
 <style scoped>
+.is-invalid {
+  border-color: #f28b82 !important;
+  background-color: #ffe6e6;
+}
+
+.invalid-feedback {
+  display: block;
+}
+
 .gestion-clientes {
   width: 95%;
   max-width: none;
@@ -627,13 +659,5 @@ const formatearFechaParaInput = (fecha) => {
 
 .form-control {
   width: 100%;
-}
-
-.is-invalid {
-  border-color: #f28b82 !important;
-  background-color: #ffe6e6;
-}
-.invalid-feedback {
-  display: block;
 }
 </style>
