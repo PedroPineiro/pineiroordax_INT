@@ -165,28 +165,26 @@
         </div>
       </div>
 
-      <!-- Histórico -->
-      <div class="d-flex justify-content-end mb-2">
-        <input
-          type="checkbox"
-          id="historico"
-          v-model="mostrarHistorico"
-          class="form-check-input"
-          @change="cargarClientes"
-        />
-        <label for="historico" class="form-check-label ms-3 me-5 mb-0"
-          >Histórico</label
-        >
-      </div>
+      <!-- Botón centrado y checkbox al final -->
+      <div class="d-flex align-items-center mt-3">
+        <!-- Espacio izquierdo para centrar el botón -->
+        <div class="flex-grow-1 d-flex justify-content-center">
+          <button type="submit" class="btn btn-primary px-4">
+            {{ editando ? "Modificar Cliente" : "Guardar Cliente" }}
+          </button>
+        </div>
 
-      <!-- Botón centrado -->
-      <div class="text-center">
-        <button
-          type="submit"
-          class="btn btn-primary border-0 shadow-none rounded-0"
-        >
-          Cargar
-        </button>
+        <!-- Checkbox al final -->
+        <div class="form-check form-switch ms-3">
+          <input
+            type="checkbox"
+            id="historico"
+            v-model="mostrarHistorico"
+            class="form-check-input"
+            @change="cargarClientes"
+          />
+          <label for="historico" class="form-check-label ms-2">Histórico</label>
+        </div>
       </div>
     </form>
     <!-- Lista de Clientes -->
@@ -528,6 +526,59 @@ const editarCliente = (movil) => {
   clienteEditandoId.value = cliente.id;
 };
 
+const buscarClientePorDNI = async (dni) => {
+  if (!dni || dni.trim() === "") {
+    Swal.fire({
+      icon: "warning",
+      title: "Debe introducir un DNI antes de buscar.",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+    return;
+  }
+
+  try {
+    const cliente = await getClientePorDni(dni.trim().toUpperCase());
+
+    if (!cliente) {
+      Swal.fire({
+        icon: "info",
+        title: "Cliente no encontrado",
+        text: "No existe ningún cliente con ese DNI.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      return;
+    }
+
+    // ✅ Cargar los datos en el formulario
+    nuevoCliente.value = { ...cliente };
+    nuevoCliente.value.fecha_alta = formatearFechaParaInput(cliente.fecha_alta);
+
+    // Actualiza lista de municipios si cambia la provincia
+    filtrarMunicipios();
+    //opcional
+    editando.value = true;
+    clienteEditandoId.value = cliente.id;
+
+    Swal.fire({
+      icon: "success",
+      title: "Cliente encontrado y cargado",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+  } catch (error) {
+    console.error("Error buscando cliente por DNI:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error al buscar cliente",
+      text: "Verifique la conexión o contacte con el administrador.",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  }
+};
+
 // SCRIPS AUXILIARES
 
 // Estado de validez del DNI/NIE si la estructura de datos es más compleja se usa reactive
@@ -622,21 +673,21 @@ const validarMovil = () => {
 
 // conversor fecha
 function formatearFechaParaInput(fecha) {
-  if (!fecha) return '';
+  if (!fecha) return "";
 
   // Detecta formato dd/mm/yyyy
-  if (fecha.includes('/')) {
-    const [dd, mm, yyyy] = fecha.split('/');
-    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  if (fecha.includes("/")) {
+    const [dd, mm, yyyy] = fecha.split("/");
+    return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
   }
 
   // Detecta formato yyyy-mm-dd
-  if (fecha.includes('-')) {
-    const partes = fecha.split('-');
+  if (fecha.includes("-")) {
+    const partes = fecha.split("-");
     if (partes.length === 3) return fecha; // ya formato ISO
   }
 
-  return '';
+  return "";
 }
 </script>
 
